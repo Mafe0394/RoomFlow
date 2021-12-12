@@ -151,4 +151,60 @@ class BusStopAdapter(private val onItemClicked: (Schedule) -> Unit) :
 
 }
 ```
+# Using Flow and LiveData for live updates
+We can use Flow and LiveData for live updates on the RecyclerView, so everytime there is a change in the database, the List implements the changes and they can be visualized for the user.
+```
+@Dao
+interface ScheduleDao {
+    @Query("SELECT * FROM schedule ORDER BY arrival_time ASC")
+    fun getAll(): Flow<List<Schedule>>
 
+    @Query("SELECT * FROM schedule WHERE stop_name= :stopName ORDER BY arrival_time ASC")
+    fun getByStopName(stopName: String): LiveData<List<Schedule>>
+}
+```
+```
+class BusScheduleViewModel(
+    private val scheduleDao: ScheduleDao
+) : ViewModel() {
+    fun fullSchedule(): Flow<List<Schedule>> = scheduleDao.getAll()
+
+    fun scheduleForStopName(name: String): LiveData<List<Schedule>> =
+        scheduleDao.getByStopName(name)
+}
+```
+in FullScheduleFragment.kt
+```
+override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        recyclerView = binding.recyclerView
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val busStopAdapter = BusStopAdapter {
+            val action =
+                FullScheduleFragmentDirections.actionFullScheduleFragmentToStopScheduleFragment(
+                    stopName = it.stopName
+                )
+            view.findNavController().navigate(action)
+        }
+        recyclerView.adapter = busStopAdapter
+        lifecycle.coroutineScope.launch {
+            viewModel.fullSchedule().collect {
+                busStopAdapter.submitList(it)
+            }
+        }
+    }
+```
+
+In StopScheduleFragment.kt
+```
+override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        recyclerView = binding.recyclerView
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val busStopAdapter = BusStopAdapter {}
+        recyclerView.adapter = busStopAdapter
+        viewModel.scheduleForStopName(stopName).observe(viewLifecycleOwner){
+            busStopAdapter.submitList(it)
+        }
+    }
+```
