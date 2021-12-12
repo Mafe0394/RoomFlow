@@ -17,3 +17,17 @@ The bus stops are stored in a Room database. Schedule items are represented by t
 2. Download the sample.
 3. Import the sample into Android Studio.
 4. Build and run the sample.
+
+# DAO (Data Access Objects)
+
+To show all the bus stops in ascending order by arrival time. In this use case, the query just needs to get all columns and include an appropriate ORDER BY clause. The query is specified as a string passed into a @Query annotation. Define a function getAll() that returns a List of Schedule objects including the @Query annotation as shown.
+```
+@Query("SELECT * FROM schedule ORDER BY arrival_time ASC")
+fun getAll(): List<Schedule>
+```
+
+When you want results that match the selected stop name, so you need to add a WHERE clause. You can reference Kotlin values from the query by preceding it with a colon (:) (e.g. :stopName from the function parameter). Like before, the results are ordered in ascending order by arrival time. Define a getByStopName() function that takes a String parameter called stopName and returns a List of Schedule objects, with a @Query annotation as shown.
+```
+@Query("SELECT * FROM schedule WHERE stop_name = :stopName ORDER BY arrival_time ASC")
+fun getByStopName(stopName: String): List<Schedule>
+```
