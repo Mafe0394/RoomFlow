@@ -82,7 +82,8 @@ class BusScheduleApplication:Application() {
 }
 ```
 To make sure that BusScheduleApplication class is used (instead of the default base class Application), we need to make a small change to the manifest. In AndroidMainifest.xml, set the android:name to com.example.busschedule.BusScheduleApplication.
-```<application
+```
+<application
     android:name="com.example.busschedule.BusScheduleApplication"
     ...
 ```
