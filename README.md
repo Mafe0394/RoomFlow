@@ -43,3 +43,46 @@ override fun <T : ViewModel> create(modelClass: Class<T>): T {
        throw IllegalArgumentException("Unknown ViewModel class")
    }
 ```
+
+# Setting the database
+When using an AppDatabase class, you want to ensure that only one instance of the database exists to prevent race conditions or other potential issues. The instance is stored in the companion object, and you'll also need a method that either returns the existing instance, or creates the database for the first time. We use the @Volatile annotation on the INSTANCE variable to avoid potential bugs.
+
+```
+@Database(entities = arrayOf(Schedule::class), version = 1)
+abstract class AppDataBase : RoomDatabase() {
+    abstract fun scheduleDao(): ScheduleDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDataBase? = null
+
+        fun getDatabase(context: Context): AppDataBase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context,
+                    AppDataBase::class.java,
+                    "app_database"
+                ).createFromAsset("database/bus_schedule.db")
+                    .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}
+```
+
+Note: The version number is incremented each time you make a schema change. The app checks this version with the one in the database to determine if and how a migration should be performed.
+
+# Application class
+We'll need to provide a custom subclass of the Application class, and create a lazy property that will hold the result of getDatabase().
+```
+class BusScheduleApplication:Application() {
+    val database:AppDataBase by lazy { AppDataBase.getDatabase(this) }
+}
+```
+To make sure that BusScheduleApplication class is used (instead of the default base class Application), we need to make a small change to the manifest. In AndroidMainifest.xml, set the android:name to com.example.busschedule.BusScheduleApplication.
+```<application
+    android:name="com.example.busschedule.BusScheduleApplication"
+    ...
+```
